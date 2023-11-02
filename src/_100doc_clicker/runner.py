@@ -2,7 +2,7 @@
 The main script of 100doc_clicker.
 Only supports Chrome.
 '''
-
+import sys
 from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
 
@@ -12,7 +12,7 @@ from selenium.common import UnexpectedAlertPresentException
 from . import Clicker
 
 
-def _make_parser():
+def parse_arguments(arguments):
 	parser = ArgumentParser()
 	parser.add_argument(
 		'-r', '--dry-run',
@@ -22,10 +22,16 @@ def _make_parser():
 	parser.add_argument(
 		'-s', '--stop-at',
 		type = int,
-		help = 'The lesson to stop at. Defaults to None (run through 100).'
+		help = (
+			'The lesson to stop at (1 <= s <= 100). '
+			'Defaults to None (run through 100).'
+		)
 	)
 	
-	subparsers = parser.add_subparsers(help = 'The webdriver type to use')
+	subparsers = parser.add_subparsers(
+		help = 'The webdriver type to use',
+		dest = 'driver'
+	)
 	
 	chrome_parser = subparsers.add_parser('chrome', aliases = ['c'])
 	chrome_parser.add_argument(
@@ -49,21 +55,29 @@ def _make_parser():
 		help = 'The profile directory.'
 	)
 	
-	return parser
+	return parser.parse_args(arguments)
 
 
-def _make_chrome_driver(args):
+def _make_chrome_driver(arguments):
 	options = webdriver.ChromeOptions()
 	options.add_argument('--no-sandbox')
-	options.add_argument(f'--user-data-dir={args.user_data_directory}')
-	options.add_argument(f'--profile-directory={args.profile_directory}')
+	options.add_argument(f'--user-data-dir={arguments.user_data_directory}')
+	options.add_argument(f'--profile-directory={arguments.profile_directory}')
+	
+	if arguments.dry_run:
+		print(f'{options._arguments = }')
+		return
 	
 	return webdriver.Chrome(options)
 
 
-def _make_firefox_driver(args):
+def _make_firefox_driver(arguments):
 	options = webdriver.FirefoxOptions()
-	options.profile = webdriver.FirefoxProfile(args.profile_directory)
+	options.profile = webdriver.FirefoxProfile(arguments.profile_directory)
+	
+	if arguments.dry_run:
+		print(f'{options._arguments = }')
+		return
 	
 	return webdriver.Firefox(options)
 
@@ -75,24 +89,28 @@ def _run_clicker(driver, stop_at):
 		# Ignore "You have unsaved changes" alerts.
 		_run_clicker(driver, stop_at)
 
+
 def main():
-	parser = _make_parser()
-	args = parser.parse_args()
-	
+	arguments = parse_arguments(sys.argv[1:])
 	driver = None
 	
-	if args.dry_run:
-		print(args.__dict__)
+	if arguments.dry_run:
+		print(f'{arguments = }')
+	
+	match arguments.driver:
+		case 'chrome' | 'c':
+			driver = _make_chrome_driver(arguments)
+		
+		case 'firefox' | 'd':
+			driver = _make_firefox_driver(arguments)
+		
+		case _:
+			raise ValueError('Unexpected argument')
+	
+	if arguments.dry_run:
 		return
 	
-	match args.driver:
-		case 'chrome':
-			driver = _make_chrome_driver(args)
-		
-		case 'firefox':
-			driver = _make_firefox_driver(args)
-	
-	_run_clicker(driver, args.stop_at)
+	_run_clicker(driver, arguments.stop_at)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,8 @@
 # 100DoC Clicker
 
+![Tests][B1]
+[![License: Unlicense][B2]](http://unlicense.org/)
+
 ***100DoC Clicker*** provides a script that will click its way through
 all 100 lessons in [Replit's 100 Days of Code][1] Python course should you
 so choose. Currently, it only supports Chrome and Firefox.
@@ -36,5 +39,8 @@ $ start-100doc-clicker chrome -h
 $ start-100doc-clicker firefox -h
 ```
 
+
+  [B1]: https://github.com/InSyncWithFoo/100doc-clicker/actions/workflows/tox.yaml/badge.svg
+  [B2]: https://img.shields.io/badge/license-Unlicense-blue.svg
 
   [1]: https://replit.com/learn/100-days-of-code

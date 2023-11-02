@@ -1,4 +1,4 @@
-name: Mypy
+name: Tests
 
 on:
   - push
@@ -24,7 +24,7 @@ jobs:
         name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install tox tox-gh-actions
       -
-        name: Run mypy
-        run: mypy src/_100doc_clicker/__init__.py --strict
+        name: Run tox
+        run: tox

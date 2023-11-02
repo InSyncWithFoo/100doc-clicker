@@ -4,6 +4,7 @@ end_of_line = lf
 
 [*.md]
 indent_size = 2
+indent_style = space
 
 [*.py]
 indent_style = tab
