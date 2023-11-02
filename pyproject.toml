@@ -1,0 +1,30 @@
+[project]
+name = "100doc-clicker"
+version = "0.1.0"
+description = "A clicker for Replit's 100 Days of Code lesson skippers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Unlicense" }
+authors = [
+	{ name = "InSyncWithFoo", email = "insyncwithfoo@gmail.com" }
+]
+dependencies = [
+	"selenium~=4.14.0"
+]
+
+[project.optional-dependencies]
+dev = [
+	"build~=1.0.3",
+	"mypy~=1.6.1",
+	"setuptools~=68.2.2"
+]
+
+[project.urls]
+Homepage = "https://github.com/InSyncWithFoo/100doc-clicker"
+
+[project.scripts]
+start-100doc-clicker = "_100doc_clicker.runner:main"
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
