@@ -92,7 +92,6 @@ def _run_clicker(driver, stop_at):
 
 def main():
 	arguments = parse_arguments(sys.argv[1:])
-	driver = None
 	
 	if arguments.dry_run:
 		print(f'{arguments = }')
@@ -101,11 +100,11 @@ def main():
 		case 'chrome' | 'c':
 			driver = _make_chrome_driver(arguments)
 		
-		case 'firefox' | 'd':
+		case 'firefox' | 'f':
 			driver = _make_firefox_driver(arguments)
 		
 		case _:
-			raise ValueError('Unexpected argument')
+			raise ValueError(f'Unexpected argument: {arguments.driver}')
 	
 	if arguments.dry_run:
 		return

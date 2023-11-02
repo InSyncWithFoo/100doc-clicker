@@ -26,6 +26,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 _issue_tracker_url = 'https://github.com/InSyncWithFoo/100doc-clicker/issues'
 
+
 def _normalize(text: str) -> str:
 	'''
 	Strip surrounding whitespace, collapse whitespace sequence
@@ -96,6 +97,7 @@ class _JSScript(str, Enum):
 		'''
 		
 		return driver.execute_script(self, *arguments)  # type: ignore
+
 
 class Clicker:
 	'''
@@ -192,12 +194,25 @@ class Clicker:
 		
 		return _get_lesson_number(button_text) < self.stop_at
 	
+	def _get_to_hub(self) -> None:
+		'''
+		Try to get to the hub and raise a ``RuntimeError``
+		if we can't.
+		'''
+		
+		self.driver.get(self._hub_url)
+		
+		if self.driver.current_url != self._hub_url:
+			raise RuntimeError(
+				'Cannot access hub. Log in or start the course first.'
+			)
+	
 	def start(self) -> None:
 		'''
 		The method that starts the whole process.
 		'''
 		
-		self.driver.get(self._hub_url)
+		self._get_to_hub()
 		
 		start_button_locator = (By.CSS_SELECTOR, _Selector.START_BUTTON)
 		start_button = self.driver.find_element(*start_button_locator)

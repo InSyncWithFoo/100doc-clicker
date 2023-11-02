@@ -1,6 +1,6 @@
 [project]
 name = "100doc-clicker"
-version = "0.1.1"
+version = "0.1.2"
 description = "A clicker for Replit's 100 Days of Code lesson skippers"
 readme = "README.md"
 requires-python = ">=3.10"

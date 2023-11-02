@@ -20,7 +20,8 @@ To install, run the following command in your shell:
 $ pip install git+https://github.com/InSyncWithFoo/100doc-clicker
 ```
 
-Make sure that you are logged into your Replit account and have Python 3.10
+Make sure that you are logged into your Replit account, started the course
+using the button on [the introduction page][1] and have Python 3.10
 or later installed. The main script can then be run with either:
 
 ```shell
