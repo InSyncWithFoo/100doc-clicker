@@ -234,8 +234,10 @@ class Clicker:
 			
 			overlay = self._find_element(_Selector.OVERLAY)
 			
-			_JSScript.remove_elements.execute(self.driver, [sidebar])
-			_JSScript.remove_elements.execute(self.driver, [overlay])
+			_JSScript.remove_elements.execute(
+				self.driver,
+				arguments = [sidebar, overlay]
+			)
 	
 	def _mark_lesson_as_completed(self) -> None:
 		'''
