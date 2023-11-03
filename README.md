@@ -43,6 +43,8 @@ $ start-100doc-clicker chrome -h
 $ start-100doc-clicker firefox -h
 ```
 
+When the script is running, try not to interact with the browser.
+
 
   [B1]: https://github.com/InSyncWithFoo/100doc-clicker/actions/workflows/tox.yaml/badge.svg
   [B2]: https://img.shields.io/badge/license-Unlicense-blue.svg

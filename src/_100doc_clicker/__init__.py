@@ -229,6 +229,7 @@ class Clicker:
 		
 		if sidebar.is_displayed():
 			# This should not happen.
+			
 			_logger.info('Close button did not close the sidebar')
 			_logger.info('Closing manually using JavaScript')
 			
