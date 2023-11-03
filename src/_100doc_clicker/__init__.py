@@ -190,9 +190,9 @@ class Clicker:
 		'''
 		
 		if self.stop_at is None:
-			return _normalize(button_text) != 'completed day 100'
+			return _normalize(button_text) == 'completed day 100'
 		
-		return _get_lesson_number(button_text) < self.stop_at
+		return _get_lesson_number(button_text) >= self.stop_at
 	
 	def _get_to_hub(self) -> None:
 		'''
