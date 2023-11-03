@@ -5,10 +5,13 @@
 
 ***100DoC Clicker*** provides a script that will click its way through
 all 100 lessons in [Replit's 100 Days of Code][1] Python course should you
-so choose. Currently, it only supports Chrome and Firefox.
+so choose.
 
-This package is not intended to be imported. Regardless, it is fully
-typed and documented. Import it at your own risk.
+Currently, this package only supports Chrome and Firefox.
+If you use a different browser, you can write your own script
+using the `Clicker` class. The package is not intended to be
+imported. Regardless, it is fully typed and documented. 
+Import it at your own risk.
 
 
 ## Installation and usage

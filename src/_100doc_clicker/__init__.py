@@ -9,10 +9,12 @@ Import it at your own risk.
 '''
 
 import re
+import logging
 from collections.abc import Iterable
 from enum import Enum
 from typing import Any
 
+from selenium.common import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
@@ -23,6 +25,14 @@ from selenium.webdriver.support.expected_conditions import (
 )
 from selenium.webdriver.support.wait import WebDriverWait
 
+
+logging.basicConfig(
+	datefmt = '%Y-%m-%d %H:%M:%S',
+	encoding = 'utf-8',
+	format = '[%(asctime)s.%(msecs)03d]: %(message)s',
+	level = logging.INFO
+)
+_logger = logging.getLogger(__name__)
 
 _issue_tracker_url = 'https://github.com/InSyncWithFoo/100doc-clicker/issues'
 
@@ -59,9 +69,20 @@ def _get_lesson_number(text: str) -> int:
 	return int(match[0])
 
 
+class CannotAccessHub(RuntimeError):
+	pass
+
+
+class ThisLessonHasAlreadyBeenStarted(RuntimeError):
+	pass
+
+
 class _Selector(str, Enum):
 	START_BUTTON = 'button[data-cy="lesson-cta"]'
-	SIDEBAR = 'div[data-cy="tutorial-viewer-content"]'
+	CLOSE_SIDEBAR_BUTTON = 'button[data-cy="sidebar-toggle-btn"]'
+	SIDEBAR = 'nav[aria-label="sidebar" i]'
+	OVERLAY = '.overlay'
+	TUTORIAL_PANEL = 'div[data-cy="tutorial-viewer-content"]'
 	RUN_BUTTON = 'div[data-cy="ws-run-btn"]'
 	DIALOG = 'div[role="dialog"]'
 	BACK_TO_HUB_LINK = 'a[href*="100-days-of-python/hub"]'
@@ -82,6 +103,9 @@ class _JSScript(str, Enum):
 			.toLowerCase();
 		
 		return normalizedButtonText === 'show tutorial';
+	'''
+	remove_elements = '''
+		[...arguments].forEach(element => element.remove());
 	'''
 	
 	def execute(
@@ -118,15 +142,33 @@ class Clicker:
 		'''
 		
 		self.driver = driver
-		self.wait = WebDriverWait(self.driver, 1000)
+		self.patiently_wait = WebDriverWait(self.driver, 1000)
 		self.stop_at = stop_at
 	
-	def _find_element(self, selector: str) -> WebElement:
+	def _get_to_hub(self) -> None:
 		'''
-		Shorthand for ``self.driver.find_element(By.CSS_SELECTOR, selector)``.
+		Try to get to the hub and raise a ``RuntimeError``
+		if we can't.
 		'''
 		
-		return self.driver.find_element(By.CSS_SELECTOR, selector)
+		_logger.info(f'Trying to get to hub: {self._hub_url}')
+		self.driver.get(self._hub_url)
+		
+		if self.driver.current_url != self._hub_url:
+			_logger.info(f'Current URL: {self.driver.current_url}')
+			
+			raise CannotAccessHub('Log in or start the course first.')
+	
+	def _find_element(self, selector: str) -> WebElement | None:
+		'''
+		Shorthand for ``self.driver.find_element(By.CSS_SELECTOR, selector)``.
+		Return ``None`` instead of erring out if the element is not found.
+		'''
+		
+		try:
+			return self.driver.find_element(By.CSS_SELECTOR, selector)
+		except NoSuchElementException:
+			return None
 	
 	def _load_lesson(self, start_button: WebElement) -> None:
 		'''
@@ -137,14 +179,63 @@ class Clicker:
 		:param start_button: The button to click.
 		'''
 		
-		sidebar_is_visible = visibility_of_element_located(
-			(By.CSS_SELECTOR, _Selector.SIDEBAR)
+		tutorial_panel_is_visible = visibility_of_element_located(
+			(By.CSS_SELECTOR, _Selector.TUTORIAL_PANEL)
 		)
 		
-		self.wait.until(element_to_be_clickable(start_button))
+		_logger.info('Waiting for the start button to be clickable')
+		self.patiently_wait.until(element_to_be_clickable(start_button))
+		
+		_logger.info(f'Loading day {_get_lesson_number(start_button.text)}')
 		start_button.click()
 		
-		self.wait.until(sidebar_is_visible)
+		timeout = 10
+		wait = WebDriverWait(self.driver, timeout)
+		
+		try:
+			_logger.info(f'Waiting for the IDE to load; timeout in {10}s')
+			wait.until(invisibility_of_element(start_button))
+		except TimeoutException:
+			_logger.info(
+				'IDE failed to load. Possibly due to a '
+				'"This lesson has already been started" error.'
+			)
+			raise ThisLessonHasAlreadyBeenStarted
+		else:
+			_logger.info('IDE is loading; waiting for the panel to be loaded')
+			self.patiently_wait.until(tutorial_panel_is_visible)
+	
+	def _close_sidebar_if_it_is_visible(self) -> None:
+		'''
+		Close the sidebar, in case it forbids us from
+		clicking the continue/start lesson button.
+		'''
+		
+		sidebar = self._find_element(_Selector.SIDEBAR)
+		
+		if sidebar is None:
+			logging.info('No sidebar found.')
+			return
+		
+		if sidebar.is_displayed():
+			_logger.info('Sidebar is visible')
+			_logger.info('Clicking the close button')
+			
+			close_button = self._find_element(_Selector.CLOSE_SIDEBAR_BUTTON)
+			close_button.click()
+			
+			_logger.info('Waiting for the sidebar to disappear')
+			self.patiently_wait.until(invisibility_of_element(sidebar))
+		
+		if sidebar.is_displayed():
+			# This should not happen.
+			_logger.info('Close button did not close the sidebar')
+			_logger.info('Closing manually using JavaScript')
+			
+			overlay = self._find_element(_Selector.OVERLAY)
+			
+			_JSScript.remove_elements.execute(self.driver, [sidebar])
+			_JSScript.remove_elements.execute(self.driver, [overlay])
 	
 	def _mark_lesson_as_completed(self) -> None:
 		'''
@@ -158,7 +249,10 @@ class Clicker:
 			.execute(self.driver, arguments = [leftmost_button_in_header])
 		
 		if is_show_tutorial:
-			self.wait.until(invisibility_of_element(leftmost_button_in_header))
+			_logger.info('Cannot mark as completed just yet; waiting for the button')
+			self.patiently_wait.until(
+				invisibility_of_element(leftmost_button_in_header)
+			)
 		
 		leftmost_button_in_header.click()
 	
@@ -172,11 +266,13 @@ class Clicker:
 		
 		dialog_is_visible = visibility_of_element_located(dialog_locator)
 		
-		self.wait.until(dialog_is_visible)
+		_logger.info('Waiting for the dialog to be visible')
+		self.patiently_wait.until(dialog_is_visible)
 		
 		dialog = self.driver.find_element(*dialog_locator)
 		back_to_hub_link = dialog.find_element(*link_locator)
 		
+		_logger.info('Getting back to hub')
 		back_to_hub_link.click()
 	
 	def _reached_stop(self, button_text: str) -> bool:
@@ -194,19 +290,6 @@ class Clicker:
 		
 		return _get_lesson_number(button_text) >= self.stop_at
 	
-	def _get_to_hub(self) -> None:
-		'''
-		Try to get to the hub and raise a ``RuntimeError``
-		if we can't.
-		'''
-		
-		self.driver.get(self._hub_url)
-		
-		if self.driver.current_url != self._hub_url:
-			raise RuntimeError(
-				'Cannot access hub. Log in or start the course first.'
-			)
-	
 	def start(self) -> None:
 		'''
 		The method that starts the whole process.
@@ -218,9 +301,19 @@ class Clicker:
 		start_button = self.driver.find_element(*start_button_locator)
 		
 		while not self._reached_stop(start_button.text):
-			self._load_lesson(start_button)
+			self._close_sidebar_if_it_is_visible()
+			
+			try:
+				self._load_lesson(start_button)
+			except ThisLessonHasAlreadyBeenStarted:
+				continue
+			
 			self._mark_lesson_as_completed()
 			self._get_back_to_hub()
 			
-			self.wait.until(visibility_of_element_located(start_button_locator))
+			self.patiently_wait.until(
+				visibility_of_element_located(start_button_locator)
+			)
 			start_button = self.driver.find_element(*start_button_locator)
+		
+		_logger.info('Reached stop; terminating')

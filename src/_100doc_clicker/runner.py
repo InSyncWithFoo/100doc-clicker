@@ -9,7 +9,7 @@ from pathlib import Path
 from selenium import webdriver
 from selenium.common import UnexpectedAlertPresentException
 
-from . import Clicker
+from _100doc_clicker import Clicker
 
 
 def parse_arguments(arguments):
