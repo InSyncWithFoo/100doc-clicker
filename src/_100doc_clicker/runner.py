@@ -1,7 +1,7 @@
 '''
 The main script of 100doc_clicker.
-Only supports Chrome.
 '''
+
 import sys
 from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path

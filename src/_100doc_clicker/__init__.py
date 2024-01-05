@@ -227,9 +227,7 @@ class Clicker:
 			_logger.info('Waiting for the sidebar to disappear')
 			self.patiently_wait.until(invisibility_of_element(sidebar))
 		
-		if sidebar.is_displayed():
-			# This should not happen.
-			
+		if sidebar.is_displayed():  # This should not happen.
 			_logger.info('Close button did not close the sidebar')
 			_logger.info('Closing manually using JavaScript')
 			
